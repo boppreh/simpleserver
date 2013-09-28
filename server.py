@@ -14,13 +14,19 @@ class _HttpHandler(BaseHTTPRequestHandler):
         value = _HttpHandler.dictionary
         if self.path:
             for part in self.path.split('/'):
+                # Use parts as list indexes.
+                if isinstance(value, list):
+                    part = int(part)
+
                 value = value[part]
+
+                # Replace function values by their returns.
                 if hasattr(value, '__call__'):
                     value = value()
 
         self.wfile.write(str(value))
 
-def start_http_server(dictionary, port=80, stop_condition=lambda: False):
+def serve(dictionary, port=80, stop_condition=lambda: False):
     """
     Starts an HTTP server in a new thread that returns the values from the
     given dictionary. GET /a/b/c is evaluated as dictionary['a']['b']['c']. If
