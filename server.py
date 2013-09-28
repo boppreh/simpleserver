@@ -2,16 +2,16 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 class _HttpHandler(BaseHTTPRequestHandler):
     """
-    Extracts the response from the class attribute "_HttpHandler.dictionary".,
+    Extracts the response from the class attribute "_HttpHandler.data".,
     according to the path requested. GET /a/b/c is evaluated as
-    _HttpHandler.dictionary['a']['b']['c']. Functions are replaced by their
+    _HttpHandler.data['a']['b']['c']. Functions are replaced by their
     returned values.
     """
     def do_GET(self):
         if self.path.startswith('/'):
             self.path = self.path[1:]
 
-        value = _HttpHandler.dictionary
+        value = _HttpHandler.data
         if self.path:
             for part in self.path.split('/'):
                 # Use parts as list indexes.
@@ -26,17 +26,20 @@ class _HttpHandler(BaseHTTPRequestHandler):
 
         self.wfile.write(str(value))
 
-def serve(dictionary, port=80, stop_condition=lambda: False):
+def serve(data, port=80, stop_condition=lambda: False):
     """
     Starts an HTTP server in a new thread that returns the values from the
-    given dictionary. GET /a/b/c is evaluated as dictionary['a']['b']['c']. If
+    given data. GET /a/b/c is evaluated as data['a']['b']['c']. If
     an intermediary value is a function, it'll be invoked and the return value
     used.
 
     Blocks until `stop_condition` returns True.
     """
     server_address = ('', port)
-    _HttpHandler.dictionary = dictionary
+    _HttpHandler.data = data
     httpd = HTTPServer(server_address, _HttpHandler)
     while not stop_condition():
         httpd.handle_request()
+
+if __name__ == '__main__':
+    serve('It works!', port=8080)
