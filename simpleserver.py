@@ -8,23 +8,22 @@ class _HttpHandler(BaseHTTPRequestHandler):
     returned values.
     """
     def do_GET(self):
-        if self.path.startswith('/'):
-            self.path = self.path[1:]
+        result = navigate_value(_HttpHandler.data, self.path)
+        self.wfile.write(str(result))
 
-        value = _HttpHandler.data
-        if self.path:
-            for part in self.path.split('/'):
-                # Use parts as list indexes.
-                if isinstance(value, list):
-                    part = int(part)
+def navigate_value(value, http_path):
+    for part in filter(bool, http_path.split('/')):
+        # Use parts as list indexes.
+        if isinstance(value, list):
+            part = int(part)
 
-                value = value[part]
+        value = value[part]
 
-                # Replace function values by their returns.
-                if hasattr(value, '__call__'):
-                    value = value()
+        # Replace function values by their returns.
+        if hasattr(value, '__call__'):
+            value = value()
 
-        self.wfile.write(str(value))
+    return value
 
 def blocking_serve(data, port=80, stop_condition=lambda: False):
     """
