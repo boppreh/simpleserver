@@ -26,7 +26,7 @@ class _HttpHandler(BaseHTTPRequestHandler):
 
         self.wfile.write(str(value))
 
-def serve(data, port=80, stop_condition=lambda: False):
+def blocking_serve(data, port=80, stop_condition=lambda: False):
     """
     Starts an HTTP server in a new thread that returns the values from the
     given data. GET /a/b/c is evaluated as data['a']['b']['c']. If
@@ -40,6 +40,10 @@ def serve(data, port=80, stop_condition=lambda: False):
     httpd = HTTPServer(server_address, _HttpHandler)
     while not stop_condition():
         httpd.handle_request()
+
+def serve(data, port=80, stop_condition=lambda: False):
+    from threading import Thread
+    Thread(target=blocking_serve, args=(data, port, stop_condition)).start()
 
 if __name__ == '__main__':
     serve('It works!', port=8080)
