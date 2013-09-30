@@ -12,7 +12,6 @@ class _HttpHandler(BaseHTTPRequestHandler):
             # same value many times), so we have to extract only a single
             # instance for each parameter name.
             arguments = {name: value[0] for name, value in query_string.items()}
-            print arguments
             result = result(**arguments)
 
         self.wfile.write(str(result))
