@@ -57,6 +57,14 @@ def blocking_serve(data, port=80, stop_condition=lambda: False):
         httpd.handle_request()
 
 def serve(data, port=80, stop_condition=lambda: False):
+    """
+    Starts an HTTP server in a new thread that returns the values from the
+    given data. GET /a/b/c is evaluated as data['a']['b']['c']. If
+    an intermediary value is a function, it'll be invoked and the return value
+    used.
+
+    Continues running in the background until `stop_condition` returns True.
+    """
     from threading import Thread
     Thread(target=blocking_serve, args=(data, port, stop_condition)).start()
 
