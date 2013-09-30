@@ -4,19 +4,28 @@ from urlparse import urlparse, parse_qs
 class _HttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         o = urlparse(self.path)
-        result, _ = navigate_value(_HttpHandler.data[0], o.path)
+        result, _ = _navigate_value(_HttpHandler.data[0], o.path)
 
-        query_string = parse_qs(o.query)
-        if hasattr(result, '__call__') and len(query_string):
-            # parse_qs returns the values as lists (because you can declare the
-            # same value many times), so we have to extract only a single
-            # instance for each parameter name.
-            arguments = {name: value[0] for name, value in query_string.items()}
-            result = result(**arguments)
+        result = _conditional_invocation(result, o.query)
 
         self.wfile.write(str(result))
 
-def navigate_value(value, http_path):
+def _conditional_invocation(result, query):
+    """
+    Try to invoke `result` with the arguments in the query string `query`,
+    returning the result or result unchanged if not possible.
+    """
+    query_dict = parse_qs(query)
+    if hasattr(result, '__call__') and len(query_dict):
+        # parse_qs returns the values as lists (because you can declare the
+        # same value many times), so we have to extract only a single
+        # instance for each parameter name.
+        arguments = {name: value[0] for name, value in query_dict.items()}
+        return result(**arguments)
+    else:
+        return result
+
+def _navigate_value(value, http_path):
     """
     Takes an initial value and a http path of the form "/some/path" and returns
     (value['some'], value['some']['path']), converting list accesses to integer
