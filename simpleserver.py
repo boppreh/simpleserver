@@ -1,14 +1,33 @@
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse, parse_qs
+from posixpath import basename
 
 class _HttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         o = urlparse(self.path)
-        result, _ = _navigate_value(_HttpHandler.data[0], o.path)
 
+        result, _ = _navigate_value(_HttpHandler.data[0], o.path)
         result = _conditional_invocation(result, o.query)
 
         self.wfile.write(str(result))
+
+    def do_POST(self):
+        o = urlparse(self.path)
+        result, parent = _navigate_value(_HttpHandler.post_data[0], o.path)
+
+        # Append body to lists.
+        if hasattr(result, 'append'):
+            result.append(self.rfile.read())
+        # Invoke functions.
+        elif hasattr(result, '__cal__'):
+            result = _conditional_invocation(result, o.query)
+        # Replace strings in a dictionary.
+        elif isinstance(result, str) and hasattr(parent, '__setitem__'):
+            result = self.rfile.read()
+            parent[basename(o.path)] = result
+
+        self.wfile.write(str(result))
+
 
 def _conditional_invocation(result, query):
     """
@@ -47,7 +66,7 @@ def _navigate_value(value, http_path):
 
     return (value, parent)
 
-def blocking_serve(data, port=80, stop_condition=lambda: False):
+def blocking_serve(data, post_data=None, port=80, stop_condition=lambda: False):
     """
     Starts an HTTP server in a new thread that returns the values from the
     given data. GET /a/b/c is evaluated as data['a']['b']['c']. If
@@ -60,11 +79,12 @@ def blocking_serve(data, port=80, stop_condition=lambda: False):
     # Wrap in a list so if `data` is a function it doesn't become bound to the
     # class.
     _HttpHandler.data = [data]
+    _HttpHandler.post_data = [post_data]
     httpd = HTTPServer(server_address, _HttpHandler)
     while not stop_condition():
         httpd.handle_request()
 
-def serve(data, port=80, stop_condition=lambda: False):
+def serve(data, post_data=None, port=80, stop_condition=lambda: False):
     """
     Starts an HTTP server in a new thread that returns the values from the
     given data. GET /a/b/c is evaluated as data['a']['b']['c']. If
@@ -74,8 +94,9 @@ def serve(data, port=80, stop_condition=lambda: False):
 
     Continues running in the background until `stop_condition` returns True.
     """
+    args = (data, post_data, port, stop_condition)
     from threading import Thread
-    Thread(target=blocking_serve, args=(data, port, stop_condition)).start()
+    Thread(target=blocking_serve, args=args).start()
 
 if __name__ == '__main__':
-    serve(lambda x, y: int(x) + int(y), port=8080)
+    serve({}, post_data={'a': 'b'}, port=8080)
