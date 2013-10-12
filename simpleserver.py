@@ -52,6 +52,10 @@ def _navigate_value(value, http_path):
     replacing function values with their returns (value['some']()['path']).
     """
     parent = None
+
+    if hasattr(value, '__call__'):
+        value = value()
+
     for part in filter(bool, http_path.split('/')):
         parent = value
 
