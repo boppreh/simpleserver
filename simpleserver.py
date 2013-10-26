@@ -1,5 +1,9 @@
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from urlparse import urlparse, parse_qs
+try:
+    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+    from urlparse import urlparse, parse_qs
+except:
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    from urllib.parse import parse_qs, urlparse
 from posixpath import basename
 
 class _HttpHandler(BaseHTTPRequestHandler):
@@ -26,7 +30,7 @@ class _HttpHandler(BaseHTTPRequestHandler):
             result = self.rfile.read()
             parent[basename(o.path)] = result
 
-        self.wfile.write(str(result))
+        self.wfile.write(bytes(str(result), 'utf-8'))
 
 
 def _conditional_invocation(result, query):
@@ -67,6 +71,10 @@ def _navigate_value(value, http_path):
             value = value()
 
         value = value[part]
+
+    if hasattr(value, '__call__'):
+        value = value()
+
 
     return (value, parent)
 
